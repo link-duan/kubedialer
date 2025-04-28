@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gotomicro/ego/core/elog"
@@ -48,12 +49,19 @@ func New() (*KubeDialer, error) {
 	}, nil
 }
 
-func (d *KubeDialer) DialService(ctx context.Context, namespace, addr string) (net.Conn, error) {
+func (d *KubeDialer) DialService(ctx context.Context, addr string) (net.Conn, error) {
 	serviceName, port, err := net.SplitHostPort(addr)
 	if err != nil {
 		return nil, err
 	}
-	service, err := d.client.CoreV1().Services(namespace).Get(ctx, serviceName, metav1.GetOptions{})
+	paths := strings.Split(serviceName, ".")
+	var name = paths[0]
+	var namespace = "default"
+	if len(paths) >= 2 {
+		namespace = paths[1]
+	}
+
+	service, err := d.client.CoreV1().Services(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

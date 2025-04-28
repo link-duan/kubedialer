@@ -18,7 +18,7 @@ func main() {
 	client := http.Client{
 		Transport: &http.Transport{
 			DialContext: func(ctx context.Context, network string, addr string) (net.Conn, error) {
-				return dialer.DialService(ctx, "default", addr)
+				return dialer.DialService(ctx, addr)
 			}},
 	}
 	req, _ := http.NewRequest("GET", "http://svc-user", nil)

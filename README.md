@@ -34,16 +34,13 @@ func main() {
 	}
 	_, err = grpc.NewClient(
 		"passthrough:svc-user:8000",
-		grpc.WithContextDialer(func(ctx context.Context, s string) (net.Conn, error) {
-			return dialer.DialService(ctx, "default", s)
-		}),
+		grpc.WithContextDialer(dialer.DialService),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
 		panic(err)
 	}
 }
-
 ```
 
 ### HTTP Client
