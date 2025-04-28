@@ -1,6 +1,16 @@
 <h1 align="center">KubeDialer</h1>
 <p align="center">Connect to service in K8s directly without port-forward</p>
 
+## Usage
+
+```golang
+// 1. init client, this function read credentials from you ~/.kube/config
+dialer, _ := kubedialer.New()
+// 2. just dial any service
+conn, _ := dialer.DialService(ctx, "default", "svc-xx")
+// ...
+```
+
 ## Example
 
 ### gRPC Client
