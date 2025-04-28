@@ -7,7 +7,7 @@
 // 1. init client, this function read credentials from you ~/.kube/config
 dialer, _ := kubedialer.New()
 // 2. just dial any service
-conn, _ := dialer.DialService(ctx, "default", "svc-xx")
+conn, _ := dialer.DialService(ctx, "svc-xx.default")
 // ...
 ```
 
@@ -66,7 +66,7 @@ func main() {
 	client := http.Client{
 		Transport: &http.Transport{
 			DialContext: func(ctx context.Context, network string, addr string) (net.Conn, error) {
-				return dialer.DialService(ctx, "default", addr)
+				return dialer.DialService(ctx, addr)
 			}},
 	}
 	req, _ := http.NewRequest("GET", "http://svc-user", nil)
