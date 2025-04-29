@@ -13,8 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gotomicro/ego/core/elog"
-	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/httpstream"
@@ -52,6 +50,7 @@ func New() (*KubeDialer, error) {
 func (d *KubeDialer) DialService(ctx context.Context, addr string) (net.Conn, error) {
 	serviceName, port, err := net.SplitHostPort(addr)
 	if err != nil {
+		d.Logger.Errorf("invalid addr %s: %v", addr, err)
 		return nil, err
 	}
 	paths := strings.Split(serviceName, ".")
@@ -63,10 +62,12 @@ func (d *KubeDialer) DialService(ctx context.Context, addr string) (net.Conn, er
 
 	service, err := d.client.CoreV1().Services(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
+		d.Logger.Errorf("failed to get service %s: %v", serviceName, err)
 		return nil, err
 	}
 	selector := service.Spec.Selector
 	if len(selector) == 0 {
+		d.Logger.Errorf("service %s has no selectors", serviceName)
 		return nil, fmt.Errorf("service \"%s\" has no selectors", serviceName)
 	}
 	labelSelector := metav1.FormatLabelSelector(&metav1.LabelSelector{MatchLabels: selector})
@@ -77,10 +78,12 @@ func (d *KubeDialer) DialService(ctx context.Context, addr string) (net.Conn, er
 		return nil, err
 	}
 	if len(pods.Items) == 0 {
+		d.Logger.Errorf("service %s has no pods", serviceName)
 		return nil, fmt.Errorf("no pods")
 	}
 	podIndex, err := rand.Int(rand.Reader, big.NewInt(1024*1024))
 	if err != nil {
+		d.Logger.Errorf("got unexpected error: %v", err)
 		return nil, err
 	}
 	pod := pods.Items[int(podIndex.Int64())%len(pods.Items)]
@@ -112,11 +115,11 @@ func (d *KubeDialer) DialPod(ctx context.Context, namespace, podName, port strin
 	go func() {
 		message, err := io.ReadAll(errStream)
 		if err != nil {
-			elog.Error("got error when read error stream", zap.Error(err))
+			d.Logger.Errorf("got error when read error stream: %v", err)
 			return
 		}
 		if len(message) > 0 {
-			elog.Error("got error from error stream", zap.String("message", string(message)))
+			d.Logger.Errorf("got error from error stream: %s", string(message))
 		}
 	}()
 
@@ -158,3 +161,30 @@ func homeDir() string {
 	}
 	return os.Getenv("USERPROFILE") // windows
 }
+
+type Logger interface {
+	Debugf(format string, fields ...any)
+	Infof(format string, fields ...any)
+	Warnf(format string, fields ...any)
+	Errorf(format string, fields ...any)
+}
+
+type defaultLogger struct{}
+
+func (d *defaultLogger) Debugf(format string, fields ...any) {
+	fmt.Printf("[DEBUG] "+format+"\n", fields...)
+}
+
+func (d *defaultLogger) Errorf(format string, fields ...any) {
+	fmt.Printf("[ERROR] "+format+"\n", fields...)
+}
+
+func (d *defaultLogger) Infof(format string, fields ...any) {
+	fmt.Printf("[INFO] "+format+"\n", fields...)
+}
+
+func (d *defaultLogger) Warnf(format string, fields ...any) {
+	fmt.Printf("[WARN] "+format+"\n", fields...)
+}
+
+var _ Logger = (*defaultLogger)(nil)
