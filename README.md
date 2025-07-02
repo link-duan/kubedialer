@@ -4,7 +4,7 @@
 ## Usage
 
 ```golang
-// 1. init client, this function read credentials from you ~/.kube/config
+// 1. init client, this function reads credentials from your ~/.kube/config
 dialer, _ := kubedialer.New()
 // 2. just dial any service
 conn, _ := dialer.DialService(ctx, "svc-xx.default")
